@@ -35,13 +35,12 @@ use Illuminate\Support\Facades\Validator;
 
 class SiteController extends Controller {
     public function index() {
-        $pageTitle = 'Home';
-        $sliders   = Slider::active()->with(['item' => function ($query) {
-            $query->with('category', 'video');
-        }])->orderBy('id', 'desc')->get();
-        $featuredMovies = Item::active()->hasVideo()->where('featured', Status::YES)->orderBy('id', 'desc')->get();
-        $advertise      = Advertise::where('device', 1)->where('ads_show', 1)->where('ads_type', 'banner')->inRandomOrder()->first();
-        return view('Template::home', compact('pageTitle', 'sliders', 'featuredMovies', 'advertise'));
+        $pageTitle         = 'Live TV';
+        $channelCategories = ChannelCategory::active()->withWhereHas('channels', function ($query) {
+            $query->active();
+        })->get();
+
+        return view('Template::live_tvs', compact('pageTitle', 'channelCategories'));
     }
 
     public function pages($slug) {
