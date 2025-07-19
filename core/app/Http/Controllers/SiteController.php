@@ -35,13 +35,12 @@ use Illuminate\Support\Facades\Validator;
 
 class SiteController extends Controller {
     public function index() {
-        $pageTitle = 'Home';
-        $sliders   = Slider::active()->with(['item' => function ($query) {
-            $query->with('category', 'video');
-        }])->orderBy('id', 'desc')->get();
-        $featuredMovies = Item::active()->hasVideo()->where('featured', Status::YES)->orderBy('id', 'desc')->get();
-        $advertise      = Advertise::where('device', 1)->where('ads_show', 1)->where('ads_type', 'banner')->inRandomOrder()->first();
-        return view('Template::home', compact('pageTitle', 'sliders', 'featuredMovies', 'advertise'));
+        $pageTitle         = 'Live TV';
+        $channelCategories = ChannelCategory::active()->withWhereHas('channels', function ($query) {
+            $query->active();
+        })->get();
+
+        return view('Template::live_tvs', compact('pageTitle', 'channelCategories'));
     }
 
     public function pages($slug) {
@@ -473,13 +472,20 @@ class SiteController extends Controller {
             return back()->withNotify($notify);
         }
 
-        $tv            = LiveTelevision::with('category')->active()->findOrFail($id);
-        $user          = auth()->user();
-        $hasSubscribed = Subscription::where('user_id', $user->id)->where('channel_category_id', $tv->channel_category_id)->where('expired_date', '>=', now())->active()->first();
+        $tv   = LiveTelevision::with('category')->active()->findOrFail($id);
+        $user = auth()->user();
 
-        if (!$hasSubscribed) {
-            $notify[] = ['error', 'You must subscribe to watch this live TV'];
-            return to_route('live.tv')->withNotify($notify);
+        if ($tv->category->price > 0) {
+            $hasSubscribed = Subscription::where('user_id', $user->id)
+                ->where('channel_category_id', $tv->channel_category_id)
+                ->where('expired_date', '>=', now())
+                ->active()
+                ->first();
+
+            if (!$hasSubscribed) {
+                $notify[] = ['error', 'You must subscribe to watch this live TV'];
+                return to_route('live.tv')->withNotify($notify);
+            }
         }
 
         $pageTitle = $tv->title;

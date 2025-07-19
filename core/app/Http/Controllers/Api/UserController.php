@@ -1376,13 +1376,20 @@ class UserController extends Controller {
 
         $user = auth()->user();
 
-        $hasSubscribed = Subscription::where('user_id', $user->id)->where('channel_category_id', $tv->channel_category_id)->where('expired_date', '>=', now())->active()->first();
-        if (!$hasSubscribed) {
-            return response()->json([
-                'remark'  => 'subscription_not_found',
-                'status'  => 'error',
-                'message' => ['error' => 'You must subscribe to watch this live TV'],
-            ]);
+        if ($tv->category->price > 0) {
+            $hasSubscribed = Subscription::where('user_id', $user->id)
+                ->where('channel_category_id', $tv->channel_category_id)
+                ->where('expired_date', '>=', now())
+                ->active()
+                ->first();
+
+            if (!$hasSubscribed) {
+                return response()->json([
+                    'remark'  => 'subscription_not_found',
+                    'status'  => 'error',
+                    'message' => ['error' => 'You must subscribe to watch this live TV'],
+                ]);
+            }
         }
 
         $notify[]  = $tv->title;
