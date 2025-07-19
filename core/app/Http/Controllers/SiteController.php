@@ -472,13 +472,20 @@ class SiteController extends Controller {
             return back()->withNotify($notify);
         }
 
-        $tv            = LiveTelevision::with('category')->active()->findOrFail($id);
-        $user          = auth()->user();
-        $hasSubscribed = Subscription::where('user_id', $user->id)->where('channel_category_id', $tv->channel_category_id)->where('expired_date', '>=', now())->active()->first();
+        $tv   = LiveTelevision::with('category')->active()->findOrFail($id);
+        $user = auth()->user();
 
-        if (!$hasSubscribed) {
-            $notify[] = ['error', 'You must subscribe to watch this live TV'];
-            return to_route('live.tv')->withNotify($notify);
+        if ($tv->category->price > 0) {
+            $hasSubscribed = Subscription::where('user_id', $user->id)
+                ->where('channel_category_id', $tv->channel_category_id)
+                ->where('expired_date', '>=', now())
+                ->active()
+                ->first();
+
+            if (!$hasSubscribed) {
+                $notify[] = ['error', 'You must subscribe to watch this live TV'];
+                return to_route('live.tv')->withNotify($notify);
+            }
         }
 
         $pageTitle = $tv->title;
